@@ -55,7 +55,7 @@ from homeassistant.helpers.typing import ConfigType
 import homeassistant.util.color as color_util
 
 from ..debug_info import log_messages
-from .schema import MQTT_LIGHT_SCHEMA_SCHEMA
+from .schema import CONF_DEFAULTS, MQTT_LIGHT_SCHEMA_SCHEMA
 from .schema_basic import CONF_BRIGHTNESS_SCALE
 
 _LOGGER = logging.getLogger(__name__)
@@ -155,6 +155,7 @@ class MqttLightJson(
         self._hs = None
         self._white_value = None
         self._flash_times = None
+        self._defaults = None
         self._unique_id = config.get(CONF_UNIQUE_ID)
 
         # Load config
@@ -225,6 +226,10 @@ class MqttLightJson(
             key: config.get(key)
             for key in (CONF_FLASH_TIME_SHORT, CONF_FLASH_TIME_LONG)
         }
+
+        defaults = config[CONF_DEFAULTS]
+        if defaults:
+            self._defaults = defaults
 
         self._supported_features = SUPPORT_TRANSITION | SUPPORT_FLASH
         self._supported_features |= config[CONF_RGB] and SUPPORT_COLOR
@@ -472,6 +477,8 @@ class MqttLightJson(
 
         if ATTR_TRANSITION in kwargs:
             message["transition"] = kwargs[ATTR_TRANSITION]
+        elif self._defaults and self._defaults[ATTR_TRANSITION]:
+            message["transition"] = int(self._defaults[ATTR_TRANSITION])
 
         if ATTR_BRIGHTNESS in kwargs and self._brightness is not None:
             brightness_normalized = kwargs[ATTR_BRIGHTNESS] / DEFAULT_BRIGHTNESS_SCALE
@@ -533,6 +540,8 @@ class MqttLightJson(
 
         if ATTR_TRANSITION in kwargs:
             message["transition"] = kwargs[ATTR_TRANSITION]
+        elif self._defaults and self._defaults[ATTR_TRANSITION]:
+            message["transition"] = int(self._defaults[ATTR_TRANSITION])
 
         mqtt.async_publish(
             self.hass,
